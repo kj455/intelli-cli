@@ -22,7 +22,7 @@ func (c *ChatClient) CreateCompletion(payload CreateCompletionRequest) (ApiCreat
 		Messages: []Message{
 			{
 				Role:    "user",
-				Content: "Please return only the CLI command string for the following purposes." + payload.Description,
+				Content: payload.Description,
 			},
 		},
 	})
