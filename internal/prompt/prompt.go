@@ -67,6 +67,12 @@ func SelectCommand(stdin io.ReadCloser, items []SelectItem) (int, error) {
 	return i, nil
 }
 
+func ParseToChatGPTInput(desc string) string {
+	return `Please provide up to 3 commands that accomplish the following objectives. Each candidate should strictly follow the format "Command: XXX
+Summary: XXX
+Description: XXX" and output them consecutively to form a single answer. Objectives: ` + desc
+}
+
 func PropmtApiKey() (string, error) {
 	prompt := promptui.Prompt{
 		Label: "Please enter your OpenAI API key",

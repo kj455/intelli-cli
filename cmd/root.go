@@ -46,10 +46,10 @@ type Context struct {
 }
 
 func RunRoot(ctx Context, args []string) error {
-	desc := args[0]
+	desc := prompt.ParseToChatGPTInput(args[0])
 
 	res, err := utils.WithLoading(ctx.stdout, "🤔 Thinking...", func() (chatgpt.CreateChatCompletionResponse, error) {
-		res, err := ctx.chat.CreateCompletion(chatgpt.CreateChatCompletionRequest{Description: composeCLICompletionPrompt(desc)})
+		res, err := ctx.chat.CreateCompletion(chatgpt.CreateChatCompletionRequest{Description: desc})
 
 		if err != nil {
 			return res, fmt.Errorf("failed to create completion: %w", err)
@@ -89,12 +89,6 @@ func RunRoot(ctx Context, args []string) error {
 	fmt.Fprintln(ctx.stdout, string(result))
 
 	return nil
-}
-
-func composeCLICompletionPrompt(desc string) string {
-	return `Please provide up to 3 commands that accomplish the following objectives Each candidate should strictly follow the format "Command: XXX
-Summary: XXX
-Description: XXX" and output them consecutively to form a single answer. Objectives: ` + desc
 }
 
 func init() {
