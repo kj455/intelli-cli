@@ -17,7 +17,7 @@ var rootCmd = &cobra.Command{
 	Short: "IntelliCLI helps you find exact command you want to run",
 	Long:  `IntelliCLI to help you find exact command you want to run`,
 	Args:  cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		desc := args[0]
 
 		res, err := utils.WithLoading(os.Stdout, "🤔 Thinking...", func() (gateway.CreateCompletionResponse, error) {
@@ -31,15 +31,13 @@ var rootCmd = &cobra.Command{
 		})
 
 		if err != nil {
-			fmt.Println(err)
-			return
+			return err
 		}
 
 		suggestions := ToSuggestions(res.Choices[0].Messages.Content)
 
 		if len(suggestions) == 0 {
-			fmt.Println("Sorry, no suggestions found...")
-			return
+			return fmt.Errorf("no suggestions found")
 		}
 
 		prompt := promptui.Select{
@@ -60,17 +58,17 @@ var rootCmd = &cobra.Command{
 
 		i, _, err := prompt.Run()
 		if err != nil {
-			fmt.Printf("Prompt failed %v\n", err)
-			return
+			return fmt.Errorf("failed to run prompt: %w", err)
 		}
 
 		result, err := exec.Command("bash", "-c", suggestions[i].Command).Output()
 		if err != nil {
-			fmt.Println(err)
-			return
+			return fmt.Errorf("failed to run command: %w", err)
 		}
 
 		fmt.Println(string(result))
+
+		return nil
 	},
 }
 
