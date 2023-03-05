@@ -3,9 +3,12 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/kj455/intelli-cli/gateway"
+	"github.com/kj455/intelli-cli/utils"
+	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
 
@@ -17,8 +20,16 @@ var rootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		desc := args[0]
 
-		chat := gateway.CreateChatClient()
-		res, err := chat.CreateCompletion(gateway.CreateCompletionRequest{Description: composeCLICompletionPrompt(desc)})
+		res, err := utils.WithLoading(os.Stdout, "🤔 Thinking...", func() (gateway.CreateCompletionResponse, error) {
+			chat := gateway.CreateChatClient()
+			res, err := chat.CreateCompletion(gateway.CreateCompletionRequest{Description: composeCLICompletionPrompt(desc)})
+
+			if err != nil {
+				return res, fmt.Errorf("failed to create completion: %w", err)
+			}
+			return res, nil
+		})
+
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -26,17 +37,42 @@ var rootCmd = &cobra.Command{
 
 		suggestions := ParseCompletion(res.Choices[0].Messages.Content)
 
-		for _, s := range suggestions {
-			fmt.Println("Command: ", s.Command)
-			fmt.Println("Note: ", s.Note)
-			fmt.Println()
+		prompt := promptui.Select{
+			Label: "👇 Select a command",
+			Items: suggestions,
+			Templates: &promptui.SelectTemplates{
+				Label:    "{{ . }}?",
+				Active:   "✔︎ {{ .Command | cyan }}",
+				Inactive: "  {{ .Command | cyan }}",
+				Selected: "✔︎ {{ .Command | cyan }}",
+				Details: `
+--------- Command ----------
+{{ "Command:" | faint }}	{{ .Command }}
+{{ "Description:" | faint }}	{{ .Description }}
+`,
+			},
 		}
+
+		i, _, err := prompt.Run()
+		if err != nil {
+			fmt.Printf("Prompt failed %v\n", err)
+			return
+		}
+
+		result, err := exec.Command("bash", "-c", suggestions[i].Command).Output()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		fmt.Println(string(result))
 	},
 }
 
 type Suggestion struct {
-	Command string
-	Note    string
+	Command     string
+	Summary     string
+	Description string
 }
 
 func ParseCompletion(res string) []Suggestion {
@@ -44,13 +80,16 @@ func ParseCompletion(res string) []Suggestion {
 
 	cur := Suggestion{}
 	for _, line := range strings.Split(res, "\n") {
-		if strings.HasPrefix(line, "command:") {
-			cur.Command = strings.TrimSpace(strings.TrimPrefix(line, "command:"))
+		if strings.HasPrefix(line, "Command:") {
+			cur.Command = strings.TrimSpace(strings.TrimPrefix(line, "Command:"))
 		}
-		if strings.HasPrefix(line, "note:") {
-			cur.Note = strings.TrimSpace(strings.TrimPrefix(line, "note:"))
+		if strings.HasPrefix(line, "Summary:") {
+			cur.Summary = strings.TrimSpace(strings.TrimPrefix(line, "Summary:"))
 		}
-		if cur.Command != "" && cur.Note != "" {
+		if strings.HasPrefix(line, "Description:") {
+			cur.Description = strings.TrimSpace(strings.TrimPrefix(line, "Description:"))
+		}
+		if cur.Command != "" && cur.Description != "" {
 			suggestions = append(suggestions, cur)
 			cur = Suggestion{}
 		}
@@ -60,8 +99,9 @@ func ParseCompletion(res string) []Suggestion {
 }
 
 func composeCLICompletionPrompt(desc string) string {
-	return `What CLI command will accomplish the following objectives? The answer should follow this format 'command:XXX
-note:XXX'. Objectives: ` + desc
+	return `Please provide up to 3 CLI commands that accomplish the following objectives Each candidate should follow the format "Command: XXX
+Summary: XXX
+Description: XXX" and output them consecutively to form a single answer. Objectives: ` + desc
 }
 
 func Execute() {
@@ -69,8 +109,4 @@ func Execute() {
 	if err != nil {
 		os.Exit(1)
 	}
-}
-
-func init() {
-
 }

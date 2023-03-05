@@ -15,51 +15,59 @@ func TestParseCompletion(t *testing.T) {
 		want []Suggestion
 	}{
 		{
-			"valid - multiple suggestions",
+			"valid: multiple suggestions",
 			args{
-				`command: ls -a
-note: note1
+				`Command: ls -a
+Summary: summary1
+Description: description1
 
-command: ls
-note: note2
+Command: ls
+Summary: summary2
+Description: description2
 `,
 			},
 			[]Suggestion{
 				{
-					Command: "ls -a",
-					Note:    "note1",
+					Command:     "ls -a",
+					Summary:     "summary1",
+					Description: "description1",
 				},
 				{
-					Command: "ls",
-					Note:    "note2",
+					Command:     "ls",
+					Summary:     "summary2",
+					Description: "description2",
 				},
 			},
 		},
 		{
-			"valid - reverse order",
+			"valid: reverse order",
 			args{
-				`note: note1
-command: ls -a
+				`Summary: summary1
+Command: ls -a
+Description: description1
 
-note: note2
-command: ls
+Summary: summary2
+Description: description1
+Command: ls
 `,
 			},
 			[]Suggestion{
 				{
-					Command: "ls -a",
-					Note:    "note1",
+					Command:     "ls -a",
+					Summary:     "summary1",
+					Description: "description1",
 				},
 				{
-					Command: "ls",
-					Note:    "note2",
+					Command:     "ls",
+					Summary:     "summary2",
+					Description: "description1",
 				},
 			},
 		},
 		{
-			"invalid - lacking note",
+			"invalid",
 			args{
-				`command: ls -a`,
+				`Command: ls -a`,
 			},
 			[]Suggestion{},
 		},

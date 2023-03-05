@@ -16,7 +16,9 @@ type ChatClient struct {
 	client HTTPClient
 }
 
-func (c *ChatClient) CreateCompletion(payload CreateCompletionRequest) (ApiCreateChatCompletionResponse, error) {
+func (c *ChatClient) CreateCompletion(payload CreateCompletionRequest) (CreateCompletionResponse, error) {
+	var res CreateCompletionResponse
+
 	jsonBody, err := json.Marshal(&ApiCreateChatCompletionRequest{
 		Model: "gpt-3.5-turbo",
 		Messages: []Message{
@@ -27,25 +29,24 @@ func (c *ChatClient) CreateCompletion(payload CreateCompletionRequest) (ApiCreat
 		},
 	})
 	if err != nil {
-		return ApiCreateChatCompletionResponse{}, err
+		return res, err
 	}
 
 	req, err := CreateHttpRequest("POST", "/chat/completions", bytes.NewBuffer(jsonBody))
 	if err != nil {
-		return ApiCreateChatCompletionResponse{}, err
+		return res, err
 	}
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return ApiCreateChatCompletionResponse{}, err
+		return res, err
 	}
 	defer resp.Body.Close()
 
 	resBody, _ := ioutil.ReadAll(resp.Body)
 
-	var res ApiCreateChatCompletionResponse
 	if err = json.Unmarshal(resBody, &res); err != nil {
-		return ApiCreateChatCompletionResponse{}, err
+		return res, err
 	}
 
 	return res, nil
