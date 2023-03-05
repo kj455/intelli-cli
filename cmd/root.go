@@ -5,11 +5,11 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"strings"
 
-	"github.com/kj455/intelli-cli/gateway"
-	"github.com/kj455/intelli-cli/utils"
-	"github.com/manifoldco/promptui"
+	"github.com/kj455/intelli-cli/internal/chatgpt"
+	"github.com/kj455/intelli-cli/internal/prompt"
+	"github.com/kj455/intelli-cli/internal/secret"
+	"github.com/kj455/intelli-cli/pkg/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -21,10 +21,20 @@ var rootCmd = &cobra.Command{
 	Long:  `IntelliCLI to help you find exact command you want to run`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		err := secret.SetupSecretIfNeeded()
+		if err != nil {
+			return fmt.Errorf("failed to setup secret: %w", err)
+		}
+
+		key, err := secret.GetApiKey()
+		if err != nil {
+			return fmt.Errorf("failed to get api key: %w", err)
+		}
+
 		return RunRoot(Context{
 			stdin:  os.Stdin,
 			stdout: os.Stdout,
-			chat:   gateway.CreateChatClient(),
+			chat:   *chatgpt.New(key),
 		}, args)
 	},
 }
@@ -32,14 +42,14 @@ var rootCmd = &cobra.Command{
 type Context struct {
 	stdin  io.ReadCloser
 	stdout io.Writer
-	chat   gateway.ChatClientInterface
+	chat   chatgpt.ChatGPT
 }
 
 func RunRoot(ctx Context, args []string) error {
 	desc := args[0]
 
-	res, err := utils.WithLoading(ctx.stdout, "🤔 Thinking...", func() (gateway.CreateCompletionResponse, error) {
-		res, err := ctx.chat.CreateCompletion(gateway.CreateCompletionRequest{Description: composeCLICompletionPrompt(desc)})
+	res, err := utils.WithLoading(ctx.stdout, "🤔 Thinking...", func() (chatgpt.CreateChatCompletionResponse, error) {
+		res, err := ctx.chat.CreateCompletion(chatgpt.CreateChatCompletionRequest{Description: composeCLICompletionPrompt(desc)})
 
 		if err != nil {
 			return res, fmt.Errorf("failed to create completion: %w", err)
@@ -52,32 +62,12 @@ func RunRoot(ctx Context, args []string) error {
 	}
 
 	if len(res.Choices) == 0 {
-		return fmt.Errorf("no suggestions found")
-	}
-	suggestions := ToSuggestions(res.Choices[0].Messages.Content)
-
-	if len(suggestions) == 0 {
-		return fmt.Errorf("no suggestions found")
+		return fmt.Errorf("no items found")
 	}
 
-	prompt := promptui.Select{
-		Stdin: ctx.stdin,
-		Label: "Select a command",
-		Items: suggestions,
-		Templates: &promptui.SelectTemplates{
-			Label:    "{{ . }}?",
-			Active:   "👉 {{ .Command | cyan }}",
-			Inactive: "   {{ .Command | cyan }}",
-			Selected: "👉 {{ .Command | cyan }}",
-			Details: `
---------- Command ----------
-{{ "Command:" | faint }}	{{ .Command }}
-{{ "Description:" | faint }}	{{ .Description }}
-`,
-		},
-	}
+	items := prompt.ToSelectItems(res.Choices[0].Messages.Content)
+	i, err := prompt.SelectCommand(ctx.stdin, items)
 
-	i, _, err := prompt.Run()
 	if err != nil {
 		return fmt.Errorf("failed to run prompt: %w", err)
 	}
@@ -87,7 +77,7 @@ func RunRoot(ctx Context, args []string) error {
 		return nil
 	}
 
-	command := suggestions[i].Command
+	command := items[i].Command
 
 	fmt.Fprintln(ctx.stdout, "🚀 Run command: "+command)
 
@@ -99,35 +89,6 @@ func RunRoot(ctx Context, args []string) error {
 	fmt.Fprintln(ctx.stdout, string(result))
 
 	return nil
-}
-
-type Suggestion struct {
-	Command     string
-	Summary     string
-	Description string
-}
-
-func ToSuggestions(res string) []Suggestion {
-	suggestions := []Suggestion{}
-
-	cur := Suggestion{}
-	for _, line := range strings.Split(res, "\n") {
-		if strings.HasPrefix(line, "Command:") {
-			cur.Command = strings.TrimSpace(strings.TrimPrefix(line, "Command:"))
-		}
-		if strings.HasPrefix(line, "Summary:") {
-			cur.Summary = strings.TrimSpace(strings.TrimPrefix(line, "Summary:"))
-		}
-		if strings.HasPrefix(line, "Description:") {
-			cur.Description = strings.TrimSpace(strings.TrimPrefix(line, "Description:"))
-		}
-		if cur.Command != "" && cur.Description != "" {
-			suggestions = append(suggestions, cur)
-			cur = Suggestion{}
-		}
-	}
-
-	return suggestions
 }
 
 func composeCLICompletionPrompt(desc string) string {

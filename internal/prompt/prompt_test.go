@@ -1,18 +1,18 @@
-package cmd
+package prompt
 
 import (
 	"reflect"
 	"testing"
 )
 
-func TestParseCompletion(t *testing.T) {
+func TestToSelectItems(t *testing.T) {
 	type args struct {
 		res string
 	}
 	tests := []struct {
 		name string
 		args args
-		want []Suggestion
+		want []SelectItem
 	}{
 		{
 			"valid: multiple suggestions",
@@ -26,7 +26,7 @@ Summary: summary2
 Description: description2
 `,
 			},
-			[]Suggestion{
+			[]SelectItem{
 				{
 					Command:     "ls -a",
 					Summary:     "summary1",
@@ -51,7 +51,7 @@ Description: description1
 Command: ls
 `,
 			},
-			[]Suggestion{
+			[]SelectItem{
 				{
 					Command:     "ls -a",
 					Summary:     "summary1",
@@ -69,12 +69,12 @@ Command: ls
 			args{
 				`Command: ls -a`,
 			},
-			[]Suggestion{},
+			[]SelectItem{},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ToSuggestions(tt.args.res); !reflect.DeepEqual(got, tt.want) {
+			if got := ToSelectItems(tt.args.res); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ParseCompletion() = %v, want %v", got, tt.want)
 			}
 		})

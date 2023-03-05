@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"runtime"
 
-	"github.com/manifoldco/promptui"
+	"github.com/kj455/intelli-cli/internal/prompt"
 	"github.com/zalando/go-keyring"
 )
 
@@ -48,21 +48,6 @@ func openApiKeySettingPage() error {
 	return err
 }
 
-func promptApiKey() (string, error) {
-	prompt := promptui.Prompt{
-		Label: "Please enter your OpenAI API key",
-		Validate: func(input string) error {
-			if len(input) == 0 {
-				return errors.New("API key cannot be empty")
-			}
-			return nil
-		},
-		Mask: '*',
-	}
-
-	return prompt.Run()
-}
-
 func SetupSecretIfNeeded() error {
 	_, err := GetApiKey()
 	if err != nil {
@@ -71,7 +56,7 @@ func SetupSecretIfNeeded() error {
 			return fmt.Errorf("failed to open browser: %w", err)
 		}
 
-		key, err := promptApiKey()
+		key, err := prompt.PropmtApiKey()
 		if err != nil {
 			return fmt.Errorf("failed to get api key: %w", err)
 		}
