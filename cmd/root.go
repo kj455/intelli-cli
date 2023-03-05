@@ -16,7 +16,7 @@ import (
 var Dry bool
 
 var rootCmd = &cobra.Command{
-	Use:   "?",
+	Use:   "intelli-cli",
 	Short: "IntelliCLI helps you find exact command you want to run",
 	Long:  `IntelliCLI to help you find exact command you want to run`,
 	Args:  cobra.ExactArgs(1),
