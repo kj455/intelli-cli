@@ -35,7 +35,12 @@ var rootCmd = &cobra.Command{
 			return
 		}
 
-		suggestions := ParseCompletion(res.Choices[0].Messages.Content)
+		suggestions := ToSuggestions(res.Choices[0].Messages.Content)
+
+		if len(suggestions) == 0 {
+			fmt.Println("Sorry, no suggestions found...")
+			return
+		}
 
 		prompt := promptui.Select{
 			Label: "👇 Select a command",
@@ -75,7 +80,7 @@ type Suggestion struct {
 	Description string
 }
 
-func ParseCompletion(res string) []Suggestion {
+func ToSuggestions(res string) []Suggestion {
 	suggestions := []Suggestion{}
 
 	cur := Suggestion{}
@@ -99,7 +104,7 @@ func ParseCompletion(res string) []Suggestion {
 }
 
 func composeCLICompletionPrompt(desc string) string {
-	return `Please provide up to 3 CLI commands that accomplish the following objectives Each candidate should follow the format "Command: XXX
+	return `Please provide up to 3 commands that accomplish the following objectives Each candidate should strictly follow the format "Command: XXX
 Summary: XXX
 Description: XXX" and output them consecutively to form a single answer. Objectives: ` + desc
 }

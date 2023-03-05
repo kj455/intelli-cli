@@ -74,7 +74,7 @@ Command: ls
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ParseCompletion(tt.args.res); !reflect.DeepEqual(got, tt.want) {
+			if got := ToSuggestions(tt.args.res); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ParseCompletion() = %v, want %v", got, tt.want)
 			}
 		})
