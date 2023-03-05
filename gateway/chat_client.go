@@ -39,10 +39,11 @@ func (c *ChatClient) CreateCompletion(payload CreateCompletionRequest) (CreateCo
 		return res, fmt.Errorf("failed to marshal json: %w", err)
 	}
 
-	req, err := CreateHttpRequest("POST", "/chat/completions", bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequest("POST", BASE_URL+"/chat/completions", bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return res, fmt.Errorf("failed to create request: %w", err)
 	}
+	AuthorizeRequest(req)
 
 	resp, err := c.client.Do(req)
 

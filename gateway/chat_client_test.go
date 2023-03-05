@@ -5,11 +5,14 @@ import (
 	"testing"
 
 	"github.com/jarcoal/httpmock"
+	"github.com/zalando/go-keyring"
 )
 
 func TestCreateCompletion(t *testing.T) {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
+
+	keyring.MockInit()
 
 	httpmock.RegisterResponder("POST", BASE_URL+"/chat/completions", func(r *http.Request) (*http.Response, error) {
 		if r.Body == nil {
