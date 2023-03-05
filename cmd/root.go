@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -12,64 +13,92 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var Dry bool
+
 var rootCmd = &cobra.Command{
 	Use:   "?",
 	Short: "IntelliCLI helps you find exact command you want to run",
 	Long:  `IntelliCLI to help you find exact command you want to run`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		desc := args[0]
+		return RunRoot(Context{
+			stdin:  os.Stdin,
+			stdout: os.Stdout,
+			chat:   gateway.CreateChatClient(),
+		}, args)
+	},
+}
 
-		res, err := utils.WithLoading(os.Stdout, "🤔 Thinking...", func() (gateway.CreateCompletionResponse, error) {
-			chat := gateway.CreateChatClient()
-			res, err := chat.CreateCompletion(gateway.CreateCompletionRequest{Description: composeCLICompletionPrompt(desc)})
+type Context struct {
+	stdin  io.ReadCloser
+	stdout io.Writer
+	chat   gateway.ChatClientInterface
+}
 
-			if err != nil {
-				return res, fmt.Errorf("failed to create completion: %w", err)
-			}
-			return res, nil
-		})
+func RunRoot(ctx Context, args []string) error {
+	desc := args[0]
+
+	res, err := utils.WithLoading(ctx.stdout, "🤔 Thinking...", func() (gateway.CreateCompletionResponse, error) {
+		res, err := ctx.chat.CreateCompletion(gateway.CreateCompletionRequest{Description: composeCLICompletionPrompt(desc)})
 
 		if err != nil {
-			return err
+			return res, fmt.Errorf("failed to create completion: %w", err)
 		}
+		return res, nil
+	})
 
-		suggestions := ToSuggestions(res.Choices[0].Messages.Content)
+	if err != nil {
+		return err
+	}
 
-		if len(suggestions) == 0 {
-			return fmt.Errorf("no suggestions found")
-		}
+	if len(res.Choices) == 0 {
+		return fmt.Errorf("no suggestions found")
+	}
+	suggestions := ToSuggestions(res.Choices[0].Messages.Content)
 
-		prompt := promptui.Select{
-			Label: "👇 Select a command",
-			Items: suggestions,
-			Templates: &promptui.SelectTemplates{
-				Label:    "{{ . }}?",
-				Active:   "✔︎ {{ .Command | cyan }}",
-				Inactive: "  {{ .Command | cyan }}",
-				Selected: "✔︎ {{ .Command | cyan }}",
-				Details: `
+	if len(suggestions) == 0 {
+		return fmt.Errorf("no suggestions found")
+	}
+
+	prompt := promptui.Select{
+		Stdin: ctx.stdin,
+		Label: "Select a command",
+		Items: suggestions,
+		Templates: &promptui.SelectTemplates{
+			Label:    "{{ . }}?",
+			Active:   "👉 {{ .Command | cyan }}",
+			Inactive: "   {{ .Command | cyan }}",
+			Selected: "👉 {{ .Command | cyan }}",
+			Details: `
 --------- Command ----------
 {{ "Command:" | faint }}	{{ .Command }}
 {{ "Description:" | faint }}	{{ .Description }}
 `,
-			},
-		}
+		},
+	}
 
-		i, _, err := prompt.Run()
-		if err != nil {
-			return fmt.Errorf("failed to run prompt: %w", err)
-		}
+	i, _, err := prompt.Run()
+	if err != nil {
+		return fmt.Errorf("failed to run prompt: %w", err)
+	}
 
-		result, err := exec.Command("bash", "-c", suggestions[i].Command).Output()
-		if err != nil {
-			return fmt.Errorf("failed to run command: %w", err)
-		}
-
-		fmt.Println(string(result))
-
+	if Dry {
+		fmt.Fprintln(ctx.stdout, "😌 Dry run, skipping command")
 		return nil
-	},
+	}
+
+	command := suggestions[i].Command
+
+	fmt.Fprintln(ctx.stdout, "🚀 Run command: "+command)
+
+	result, err := exec.Command("bash", "-c", command).Output()
+	if err != nil {
+		return fmt.Errorf("failed to run command: %w", err)
+	}
+
+	fmt.Fprintln(ctx.stdout, string(result))
+
+	return nil
 }
 
 type Suggestion struct {
@@ -105,6 +134,10 @@ func composeCLICompletionPrompt(desc string) string {
 	return `Please provide up to 3 commands that accomplish the following objectives Each candidate should strictly follow the format "Command: XXX
 Summary: XXX
 Description: XXX" and output them consecutively to form a single answer. Objectives: ` + desc
+}
+
+func init() {
+	rootCmd.Flags().BoolVarP(&Dry, "dry", "d", false, "dry run")
 }
 
 func Execute() {
