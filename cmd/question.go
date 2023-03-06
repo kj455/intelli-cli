@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 
 	"github.com/kj455/intelli-cli/internal/chatgpt"
 	"github.com/kj455/intelli-cli/internal/prompt"
@@ -13,12 +12,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var Dry bool
-
 var questionCmd = &cobra.Command{
 	Use:   "q",
 	Short: "q helps you find exact command you want to run",
-	Long:  `q to help you find exact command you want to run`,
+	Long:  `q helps you find exact command you want to run`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		err := secret.SetupSecretIfNeeded()
@@ -34,6 +31,7 @@ var questionCmd = &cobra.Command{
 		return RunRoot(Context{
 			stdin:  os.Stdin,
 			stdout: os.Stdout,
+			stderr: os.Stderr,
 			chat:   *chatgpt.New(key),
 		}, args)
 	},
@@ -42,6 +40,7 @@ var questionCmd = &cobra.Command{
 type Context struct {
 	stdin  io.ReadCloser
 	stdout io.Writer
+	stderr io.Writer
 	chat   chatgpt.ChatGPT
 }
 
@@ -72,25 +71,36 @@ func RunRoot(ctx Context, args []string) error {
 		return fmt.Errorf("failed to run prompt: %w", err)
 	}
 
-	if Dry {
-		fmt.Fprintln(ctx.stdout, "😌 Dry run, skipping command")
-		return nil
-	}
-
 	command := items[i].Command
+	prompt.SelectCommandActions(ctx.stdin, prompt.CommandHandlers{
+		OnRun: func() error {
+			fmt.Fprintln(ctx.stdout, "🚀 Running: "+command)
 
-	fmt.Fprintln(ctx.stdout, "🚀 Run command: "+command)
+			res, err := utils.RunCommand(command)
+			if err != nil {
+				return fmt.Errorf("failed to run command: %w", err)
+			}
 
-	result, err := exec.Command("bash", "-c", command).Output()
-	if err != nil {
-		return fmt.Errorf("failed to run command: %w", err)
-	}
+			fmt.Fprintln(ctx.stdout, res)
+			return nil
+		},
+		OnCopy: func() error {
+			fmt.Fprintln(ctx.stdout, "📝 Copied: "+command)
 
-	fmt.Fprintln(ctx.stdout, string(result))
+			err := utils.CopyToClipboard(command)
+			if err != nil {
+				return fmt.Errorf("failed to copy to clipboard: %w", err)
+			}
+
+			return nil
+		},
+		OnExit: func() error {
+			fmt.Fprintln(ctx.stdout, "👋 Bye")
+			return nil
+		},
+	})
 
 	return nil
 }
 
-func init() {
-	questionCmd.Flags().BoolVarP(&Dry, "dry", "d", false, "dry run")
-}
+func init() {}

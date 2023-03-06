@@ -73,7 +73,7 @@ Summary: XXX
 Description: XXX" and output them consecutively to form a single answer. Objectives: ` + desc
 }
 
-func PropmtApiKey() (string, error) {
+func PromptApiKey() (string, error) {
 	prompt := promptui.Prompt{
 		Label: "Please enter your OpenAI API key",
 		Validate: func(input string) error {
@@ -86,4 +86,40 @@ func PropmtApiKey() (string, error) {
 	}
 
 	return prompt.Run()
+}
+
+type CommandHandlers struct {
+	OnRun  func() error
+	OnCopy func() error
+	OnExit func() error
+}
+
+func SelectCommandActions(stdin io.ReadCloser, handlers CommandHandlers) error {
+	items := []struct {
+		Label   string
+		Handler func() error
+	}{
+		{Label: "Run command", Handler: handlers.OnRun},
+		{Label: "Copy command", Handler: handlers.OnCopy},
+		{Label: "Exit", Handler: handlers.OnExit},
+	}
+
+	prompt := promptui.Select{
+		Stdin: stdin,
+		Label: "What do you want to do?",
+		Items: items,
+		Templates: &promptui.SelectTemplates{
+			Label:    "{{ .Label }}?",
+			Active:   "👉 {{ .Label | cyan }}",
+			Inactive: "   {{ .Label | cyan }}",
+			Selected: "👉 {{ .Label | cyan }}",
+		}}
+
+	i, _, err := prompt.Run()
+
+	if err != nil {
+		return fmt.Errorf("failed to run prompt: %w", err)
+	}
+
+	return items[i].Handler()
 }

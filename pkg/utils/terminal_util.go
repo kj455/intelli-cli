@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"io"
+	"os/exec"
 )
 
 const (
@@ -14,4 +15,18 @@ func WithLoading[T any](w io.Writer, loading string, f func() (T, error)) (T, er
 	res, err := f()
 	fmt.Fprint(w, CLEAR_LINE)
 	return res, err
+}
+
+func RunCommand(command string) (string, error) {
+	cmd := exec.Command("bash", "-c", command)
+
+	res, err := cmd.CombinedOutput()
+
+	fmt.Println(string(res), err)
+
+	if err != nil {
+		return "", fmt.Errorf("output: %s, error: %w", string(res), err)
+	}
+
+	return string(res), nil
 }

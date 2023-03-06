@@ -57,7 +57,7 @@ func SetupSecretIfNeeded() error {
 			return fmt.Errorf("failed to open browser: %w", err)
 		}
 
-		key, err := prompt.PropmtApiKey()
+		key, err := prompt.PromptApiKey()
 		if err != nil {
 			return fmt.Errorf("failed to get api key: %w", err)
 		}
