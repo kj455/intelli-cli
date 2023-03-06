@@ -2,6 +2,8 @@
 
 Intelli-CLI is a command-line tool that leverages the power of ChatGPT to help you find the exact command you want to execute.
 
+![intelli-cli](https://user-images.githubusercontent.com/38521709/223257260-f283fa74-7487-4a35-8768-fa51771d8089.gif)
+
 ## 🌅 Installation
 
 To install Intelli-CLI, run the following command:
