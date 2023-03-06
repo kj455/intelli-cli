@@ -65,13 +65,13 @@ func RunRoot(ctx Context, args []string) error {
 	}
 
 	items := prompt.ToSelectItems(res.Choices[0].Messages.Content)
-	i, err := prompt.SelectCommand(ctx.stdin, items)
+	item, err := prompt.SelectCommand(ctx.stdin, items)
+	command := item.Command
 
 	if err != nil {
 		return fmt.Errorf("failed to run prompt: %w", err)
 	}
 
-	command := items[i].Command
 	prompt.SelectCommandActions(ctx.stdin, prompt.CommandHandlers{
 		OnRun: func() error {
 			fmt.Fprintln(ctx.stdout, "🚀 Running: "+command)

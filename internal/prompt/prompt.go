@@ -38,9 +38,9 @@ func ToSelectItems(res string) []SelectItem {
 	return items
 }
 
-func SelectCommand(stdin io.ReadCloser, items []SelectItem) (int, error) {
+func SelectCommand(stdin io.ReadCloser, items []SelectItem) (SelectItem, error) {
 	if len(items) == 0 {
-		return 0, fmt.Errorf("no items to select")
+		return SelectItem{}, fmt.Errorf("no items to select")
 	}
 
 	prompt := promptui.Select{
@@ -62,9 +62,9 @@ func SelectCommand(stdin io.ReadCloser, items []SelectItem) (int, error) {
 	i, _, err := prompt.Run()
 
 	if err != nil {
-		return i, fmt.Errorf("failed to run prompt: %w", err)
+		return items[i], fmt.Errorf("failed to run prompt: %w", err)
 	}
-	return i, nil
+	return items[i], nil
 }
 
 func ParseToChatGPTInput(desc string) string {
