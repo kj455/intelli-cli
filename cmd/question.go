@@ -28,7 +28,7 @@ var questionCmd = &cobra.Command{
 			return fmt.Errorf("failed to get api key. Please exec `intelli-cli auth refresh`")
 		}
 
-		return RunRoot(Context{
+		return RunQuestionCmd(Context{
 			stdin:  os.Stdin,
 			stdout: os.Stdout,
 			stderr: os.Stderr,
@@ -44,7 +44,7 @@ type Context struct {
 	chat   chatgpt.ChatGPT
 }
 
-func RunRoot(ctx Context, args []string) error {
+func RunQuestionCmd(ctx Context, args []string) error {
 	desc := prompt.ParseToChatGPTInput(args[0])
 
 	res, err := utils.WithLoading(ctx.stdout, "🤔 Thinking...", func() (chatgpt.CreateChatCompletionResponse, error) {
