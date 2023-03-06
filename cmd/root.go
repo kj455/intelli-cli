@@ -8,8 +8,8 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   "intelli-cli",
-	Short: "IntelliCLI helps you find exact command you want to run",
-	Long:  `IntelliCLI to help you find exact command you want to run`,
+	Short: "intelli-cli helps you find exact command you want to run",
+	Long:  `intelli-cli helps you find exact command you want to run`,
 }
 
 func init() {

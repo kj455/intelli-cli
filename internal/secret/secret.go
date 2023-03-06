@@ -50,6 +50,7 @@ func openApiKeySettingPage() error {
 
 func SetupSecretIfNeeded() error {
 	_, err := GetApiKey()
+
 	if err != nil {
 		err := openApiKeySettingPage()
 		if err != nil {
@@ -60,6 +61,7 @@ func SetupSecretIfNeeded() error {
 		if err != nil {
 			return fmt.Errorf("failed to get api key: %w", err)
 		}
+		fmt.Println("🚀 Your API key was successfully set!")
 
 		err = setApiKey(key)
 		if err != nil {
