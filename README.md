@@ -37,14 +37,7 @@ $ intelli-cli q <description>
 $ intelli-cli q "go command to format all files in this directory"
 ```
 
-Intelli-CLI will then provide you with a list of suggestions. Select the one that best fits your needs and press enter to execute the command.
-
-If you would like to just preview the command before executing it, you can use the `--dry` or `-d` flag:
-
-```bash
-$ intelli-cli q <description> --dry
-```
-
+Intelli-CLI will then provide you with a list of suggestions. Select the one that best fits your needs.
 
 ## License
 
