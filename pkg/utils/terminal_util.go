@@ -22,8 +22,6 @@ func RunCommand(command string) (string, error) {
 
 	res, err := cmd.CombinedOutput()
 
-	fmt.Println(string(res), err)
-
 	if err != nil {
 		return "", fmt.Errorf("output: %s, error: %w", string(res), err)
 	}
