@@ -68,7 +68,7 @@ func SelectCommand(stdin io.ReadCloser, items []SelectItem) (int, error) {
 }
 
 func ParseToChatGPTInput(desc string) string {
-	return `Please provide up to 3 commands that accomplish the following objectives. Each candidate should strictly follow the format "Command: XXX
+	return `Please provide up to 3 commands that accomplish the following objectives. Each candidate must follow the format "Command: XXX
 Summary: XXX
 Description: XXX" and output them consecutively to form a single answer. Objectives: ` + desc
 }
