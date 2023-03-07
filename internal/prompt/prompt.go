@@ -90,7 +90,6 @@ func PromptApiKey() (string, error) {
 
 type CommandHandlers struct {
 	OnRun  func() error
-	OnCopy func() error
 	OnExit func() error
 }
 
@@ -100,7 +99,6 @@ func SelectCommandActions(stdin io.ReadCloser, handlers CommandHandlers) error {
 		Handler func() error
 	}{
 		{Label: "Run command", Handler: handlers.OnRun},
-		{Label: "Copy command", Handler: handlers.OnCopy},
 		{Label: "Exit", Handler: handlers.OnExit},
 	}
 

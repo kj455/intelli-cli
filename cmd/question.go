@@ -84,16 +84,6 @@ func RunQuestionCmd(ctx Context, args []string) error {
 			fmt.Fprintln(ctx.stdout, res)
 			return nil
 		},
-		OnCopy: func() error {
-			fmt.Fprintln(ctx.stdout, "📝 Copied: "+command)
-
-			err := utils.CopyToClipboard(command)
-			if err != nil {
-				return fmt.Errorf("failed to copy to clipboard: %w", err)
-			}
-
-			return nil
-		},
 		OnExit: func() error {
 			fmt.Fprintln(ctx.stdout, "👋 Bye")
 			return nil
