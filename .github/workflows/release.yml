@@ -21,6 +21,9 @@ jobs:
           go-version: 1.19
           cache: true
 
+      - name: Install deps
+        run: sudo apt-get install gcc-aarch64-linux-gnu
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v4
         with:
